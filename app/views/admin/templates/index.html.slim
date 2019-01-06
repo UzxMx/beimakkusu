@@ -1,0 +1,64 @@
+div.panel.panel-default
+  div.panel-heading 搜索
+  div.panel-body
+    = search_form_for [:admin, @q] do |f|
+      div.form-group.clearfix
+        div.col-sm-6
+          = f.search_field :id_eq, class: 'form-control', placeholder: 'Id'
+        div.col-sm-6
+          = f.search_field :name_cont, class: 'form-control', placeholder: '名称'
+
+      div.form-group.clearfix
+        div.col-sm-6
+          = f.search_field :url_cont, class: 'form-control', placeholder: 'URL'
+        div.col-sm-6
+          = f.select  :type_eq, 'Template'.constantize.types.map { |type| [t(type[0]), type[0]] }, { include_blank: '模板类型' }, class: 'form-control'
+
+      div.form-group.clearfix
+        div.col-sm-6
+          = f.select  :status_eq, 'Template'.constantize.statuses.map { |status| [t(status[0]), status[0]] }, { include_blank: '模板状态' }, class: 'form-control'          
+
+      div.form-group.clearfix
+        div.col-sm-1
+          = f.submit '搜索', class: 'btn btn-default'
+        div.col-sm-1
+          = link_to '重置', admin_templates_path, class: 'btn btn-default'
+
+div.panel.panel-default
+  div.panel-heading
+    span style="margin-right: 10px" 模板列表
+    a.btn.btn-default href=new_admin_template_path
+      span.glyphicon.glyphicon-plus
+
+  div.panel-body
+    table.table.table-striped
+      thead
+        tr
+          th = sort_link(@q, :id, 'ID', default_order: :desc)
+          th 名称
+          th URL
+          th 状态
+          th 错误数量
+          th 今日抓取总数
+          th 已抓取总数
+          th 创建时间
+          th 创建人
+          th 操作
+      tbody
+        - @templates.each do |template|
+          tr
+            td = template.id
+            td = template.name
+            td = template.url
+            td = template.status
+            td
+            td
+            td
+            td
+              time.timeago datetime=(template.created_at ? template.created_at : nil)
+                = template.created_at
+            td
+            td
+              = link_to '编辑', '/', class: 'btn btn-default'
+
+    = paginate @templates, theme: 'twitter-bootstrap-3'

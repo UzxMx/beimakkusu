@@ -1,0 +1,475 @@
+scss:
+  .step {
+    display: none;
+
+    &.current {
+      display: block;
+    }
+  }
+
+div.panel-body.step.current#step-1
+  div.form-group
+    = f.label :name, '模板名称', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.text_field :name, class: 'form-control', placeholder: '模板名称', required: true
+
+  div.form-group
+    = f.label :url, '模板URL', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.text_field :url, class: 'form-control', placeholder: '模板URL', required: true
+
+  div.form-group
+    = f.label :info_type, '信息类型', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.select :info_type, [["预告", "预告"], ["公告", "公告"], ["变更", "变更"], ["结果", "结果"]], { include_blank: '选择类型' }, {class: 'form-control'}
+
+  div.form-group
+    = f.label :province, '地区', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.text_field :province, class: 'form-control', placeholder: '地区'
+
+  div.form-group
+    = f.label :remark, '备注', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.text_area :remark, class: 'form-control', placeholder: '备注', rows: 5
+
+  = f.fields_for :meta_info do |meta_info_fields|
+    div.form-group
+      = meta_info_fields.label :encoding, '网站编码', class: 'col-sm-2 control-label'
+      div.col-sm-10
+        = meta_info_fields.text_field :encoding, class: 'form-control', placeholder: '网站编码'
+
+  div.form-group
+    div.col-sm-10.col-sm-offset-2
+      button.btn.btn-default.btn-next-step type="button" 下一步
+
+div.panel-body.step#step-2
+  div.form-group
+    = f.label :type, '网站类型', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.select :type, 'Template'.constantize.types.map { |type| [t(type[0]), type[0]] }, {}, {class: 'form-control'}
+
+  div.form-group
+    = f.label :page_count, '抓取的最多页数', class: 'col-sm-2 control-label'
+    div.col-sm-10
+      = f.text_field :page_count, class: 'form-control', placeholder: '抓取的最多页数'
+
+  div.dom-tree-panel.container-fluid style="margin-top: 30px;"
+    div.form-group
+      div
+        button.btn.btn-default.btn-get-html type="button" style="margin-right: 10px"
+          | 获取页面结构
+        button.btn.btn-default type="button" style="margin-right: 10px"
+          | 创建路径
+
+    div.form-group
+      div
+        div.checkbox style="padding-top: 0;"
+          label
+            input type="checkbox" class="js-checkbox"
+            label style="padding-left: 0;"
+              | 无法看到页面中的某些数据
+
+    div.form-group.container-search
+      label.control-label style="margin-right: 10px;" 快速查找
+      input.form-control type="text" style="display: inline-block; width: 300px; margin-right: 10px;"
+      button.btn.btn-default 查找
+
+    div
+      div.container-dom-tree
+      div.container-preview
+        iframe class="iframe-template" style="display: none;" sandbox=""
+        iframe class="iframe-preview" sandbox="allow-same-origin"
+
+    div.container-path-list
+
+  div.form-group
+    div.col-sm-10.col-sm-offset-2
+      button.btn.btn-default.btn-prev-step type="button" style="margin-right: 10px;" 上一步
+      button.btn.btn-default.btn-next-step type="button" 下一步      
+
+div.panel-body.step#step-3
+  div.form-group
+    label.col-sm-2.control-label for=""
+      | 详情页面URL
+    div.col-sm-10
+      input.form-control type="text" placeholder="详情页面URL" required="true"
+
+  div.form-group
+    div.col-sm-10.col-sm-offset-2
+      button.btn.btn-default.btn-prev-step type="button" style="margin-right: 10px;" 上一步
+      button.btn.btn-default.btn-next-step type="button" 下一步
+
+div.panel-body.step#step-4
+  div.form-group
+    div.col-sm-10.col-sm-offset-2
+      button.btn.btn-default.btn-prev-step type="button" style="margin-right: 10px;" 上一步
+      button.btn.btn-default.btn-next-step type="button" 下一步
+
+javascript:
+  (function() {
+    function TemplateChannel() {
+      this._transactions = {};
+      var that = this;
+      App.cable.subscriptions.create('TemplateChannel', {
+        connected: function() {
+          console.log('connected');
+        },
+        disconnected: function() {
+          console.log('disconnected');
+        },
+        received: function(data) {
+          console.log('received: ' + JSON.stringify(data));
+
+          var command = data.command;
+          var tx = data.tx;
+
+          if (typeof that._transactions[tx] == 'function') {
+            that._transactions[tx](data);
+            that._transactions[tx] = null;
+          }
+        }
+      });
+    }
+    TemplateChannel.prototype.registerTransaction = function(tx, callback) {
+      this._transactions[tx] = callback;
+    };
+    TemplateChannel.prototype.unregisterTransaction = function(tx) {
+      this._transactions[tx] = null;
+    };
+
+    var template_channel = new TemplateChannel();
+    var current_step = 1;
+
+    function validate_current_step() {
+      if (current_step == 1) {
+
+      } else if (current_step == 2) {
+
+      }
+      return true;
+    }
+
+    $('.btn-prev-step, .btn-next-step').click(function() {
+      var prev = $(this).hasClass('btn-prev-step');
+
+      if (!prev && !validate_current_step()) {
+        return;
+      }
+
+      $('.step').removeClass('current');
+      current_step += (prev ? -1 : 1);
+      $('#step-' + current_step).addClass('current');
+    });
+
+    function DomTreePanel($dom_tree_panel, step) {
+      var that = this;
+      $('.btn-get-html', $dom_tree_panel).click(function() {
+        // TODO
+        var url, js;
+        if (step == 2) {
+          url = $("#template_url").val();
+        } else if (step == 3) {
+          url = "";
+        }
+        if ($('.js-checkbox', $dom_tree_panel).prop('checked')) {
+          js = 1;
+        } else {
+          js = 0;
+        }
+
+        $.ajax({
+          url: "#{get_html_admin_templates_path}?url=" + encodeURIComponent(url) + "&js=" + js,
+          method: "GET",
+          success: function(data) {
+            if (that._tx) {
+              template_channel.unregisterTransaction(that._tx);
+            }
+            template_channel.registerTransaction(data.tx, function(data) {
+              var $dom_tree = $('.container-dom-tree', $dom_tree_panel);
+              var $iframe_template = $('.iframe-template', $dom_tree_panel);
+              var $iframe_preview = $('.iframe-preview', $dom_tree_panel);
+              $iframe_template.attr('srcdoc', data.html);
+
+              setTimeout(function() {
+                var htmlJSON, bodyJSON;
+                var $currentNode = null, $currentPath = null;
+
+                var subdoc = $iframe_template[0].contentWindow.document;
+                var html = $('html', subdoc)[0].outerHTML;
+                var json = himalaya.parse(html);
+                if (!json) {
+                  toastr.error('解析页面失败，请重新获取页面');
+                  return;
+                }
+
+                function hasVisibleChildren(element) {
+                  if (!element.children) {
+                    return false;
+                  }
+                  var children  = element.children;
+                  for (var i in children) {
+                    var child = children[i];
+                    if (!child.type) {
+                      continue;
+                    }
+
+                    var type = child.type;
+                    if (type == 'Text' && child.content.trim() != '') {
+                      return true;
+                    }
+
+                    if (type == 'Element') {
+                      return true;
+                    }
+                  }
+
+                  return false;
+                }
+
+                function getAttribute(element, attr) {
+                  if (element.attributes) {
+                    return element.attributes[attr];
+                  }
+                  return undefined;
+                }
+
+                function getIdAttribute(element) {
+                  return getAttribute(element, "id");
+                }
+
+                function getClassAttribute(element) {
+                  return getAttribute(element, "className");
+                }                
+
+                function getBranchNodeValue(element) {
+                  var attr, value = element.tagName;
+
+                  attr = getIdAttribute(element);
+                  if (attr) {
+                    value += '#' + attr;
+                  }
+                  attr = getClassAttribute(element);
+                  if (attr) {
+                    value += '.' + attr.join('.')
+                  }
+                  return value;
+                }
+
+                function getLeafNodeValue(element) {
+                  if (element.type == 'Element') {
+                    return element.tagName;
+                  } else {
+                    return element.content;
+                  }
+                }                
+
+                function addBranchNode($parent, element) {
+                  var html = '<div class="branch-node"><div class="node"><span class="glyphicon glyphicon-chevron-right"></span>';
+                  html += '<span>' + getBranchNodeValue(element) + '</span>';
+
+                  var $html = $(html);
+                  $html.data('tree_node', element);
+
+                  $parent.append($html);
+                }
+
+                function addLeafNode($parent, element) {
+                  console.log('type:' + element.type);
+
+                  var html = '<div class="leaf-node"><div class="node">';
+                  html += getLeafNodeValue(element) + '</div></div>';
+
+                  var $html = $(html);
+                  $html.data('tree_node', element);
+
+                  $parent.append($html);
+                }                             
+
+                function addElement($parent, element) {
+                  if (hasVisibleChildren(element)) {
+                    addBranchNode($parent, element);
+                  } else {
+                    addLeafNode($parent, element);
+                  }                
+                }
+
+                function addChildrenToTree($container, element) {
+                  var children = element.children;
+                  for (var i in children) {
+                    var child = children[i];
+                    var type = child.type;
+                    if (!type) {
+                      continue;
+                    }
+                    if (type == 'Text' && child.content.trim() != '' ||
+                        type == 'Element') {
+                       addElement($container, child);
+                    }
+                  }                
+                }
+
+                function toggleBranchExpansion($branch) {
+                  expandBranch($branch, !$branch.hasClass('expanded'));
+                }
+
+                function expandBranch($branch, expand) {
+                  var $span_icon = $('span:first-child', $branch.children().eq(0));
+                  if (!expand) {
+                    $branch.removeClass('expanded');
+                    $span_icon.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-right');
+                    return;
+                  }
+
+                  var element = $branch.data('tree_node');
+                  if ($branch.children().length == 1) {
+                    addChildrenToTree($branch, element);
+                  }
+                  $branch.addClass('expanded');
+                  $span_icon.removeClass('glyphicon-chevron-right').addClass('glyphicon-chevron-down');
+                }
+
+                function getNodePath() {
+                  var $node = $currentNode;
+                  var path = [];
+                  do {
+                    var element = $node.data('tree_node');
+                    path.push(element);
+                    $node = $node.parent();
+                  } while (!$node.hasClass('dom-tree'));
+
+                  return path.reverse();
+                }
+
+                function getNodePathWithIndex(path) {
+                  var result = [];
+                  var parent = null;
+                  for (var k in path) {
+                    var e = path[k];
+                    var o = {
+                      data: e,
+                      index: 1
+                    };
+                    if (parent) {
+                      var children = parent.children;
+                      var index = 1;
+                      for (var i in children) {
+                        var child = children[i];
+                        if (child == e) {
+                          break;
+                        }
+                        if (child.tagName == e.tagName) {
+                          index++;
+                        }
+                      }
+                      o.index = index;
+                    }
+                    parent = e;
+                    result.push(o);                  
+                  }
+                  return result;
+                } 
+
+                /**
+                 * see https://api.jquery.com/nth-child-selector/
+                 * nth-child will not work!!!
+                 */
+                function getCssSelector(path) {
+                  var parts = [];
+                  for (var i in path) {
+                    var e = path[i];
+                    if (e.data.tagName == 'body') {
+                      parts.push(`${e.data.tagName}`);
+                    } else {
+                      parts.push(`${e.data.tagName}:eq(${e.index - 1})`);
+                    }                    
+                  }
+                  return parts.join(' > ');
+                }                               
+
+                for (var prop in json) {
+                  if (json.hasOwnProperty(prop)) {
+                    var value = json[prop];
+                    if (value.tagName && value.tagName == 'html') {
+                      htmlJSON = value;
+                      break;
+                    }
+                  }
+                }
+
+                var children = htmlJSON.children;
+                for (var prop in children) {
+                  var value = children[prop];
+                  if (value.tagName && value.tagName == 'body') {
+                    bodyJSON = value;
+                    break;
+                  }
+                }                
+
+                $dom_tree.empty();
+                addChildrenToTree($dom_tree, htmlJSON);
+
+                // delegated events
+                var toggle_handler = function() {
+                  var $node;
+                  if ($(this).hasClass('node')) {
+                    console.log('branch-node dblclick');
+                    $node = $(this).parent();
+                  } else {
+                    console.log('branch-node arrow icon click');
+                    $node = $(this).parent().parent();
+                  }
+
+                  var element = $node.data('tree_node');
+                  console.log("node value:" + $('.node span:last-child', $node).text());
+
+                  toggleBranchExpansion($node);
+                };
+
+                $dom_tree.on('click', '.branch-node > .node span:first-child', toggle_handler)
+                $dom_tree.on('dblclick', '.branch-node > .node', toggle_handler);
+
+                $dom_tree.on('click', '.node', function() {
+                  console.log('branch-node click');
+
+                  var $node = $(this).parent();
+                  var element = $node.data('tree_node');
+
+                  if ($currentNode == $node) {
+                    return;
+                  }
+
+                  if ($currentNode) {
+                    $currentNode.removeClass('current');
+                  }
+
+                  $currentNode = $node;
+                  $node.addClass('current');
+
+                  // show preview
+                  var path = getNodePath();
+                  if (path[0].tagName == 'head') {
+                    console.log('head');
+                    $iframe_preview.attr('srcdoc', '');
+                  } else {
+                    path = getNodePathWithIndex(path);
+                    var selector = getCssSelector(path);
+                    var html = $(selector, domTree.subdoc)[0].outerHTML;
+                    $iframe_preview.attr('srcdoc', html);
+                  }
+
+                  if ($currentPath) {
+                    var p = $currentPath.data('path');
+                    // p.onDOMTreeCurrentNodeChanged($node);
+                  }
+                });                
+                
+              }, 2000);
+            });
+            this._tx = data.tx;
+          }
+        })
+      });
+    }
+    new DomTreePanel($('#step-2 .dom-tree-panel'), 2);
+  })();

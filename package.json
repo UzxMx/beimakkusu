@@ -1,0 +1,13 @@
+{
+  "name": "beimakkusu",
+  "dependencies": {
+    "browserify": "~10.2.4",
+    "browserify-incremental": "^3.0.1",
+    "toastr": "^2.1.2",
+    "himalaya": "^0.2.0"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">= 0.10"
+  }
+}
